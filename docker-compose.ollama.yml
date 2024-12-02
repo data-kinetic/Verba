@@ -1,0 +1,119 @@
+services:
+  verba:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - 8001:8000  # External:Internal
+    env_file: .env.dk-carbon-staging
+    environment:
+      - WEAVIATE_URL_VERBA=http://weaviate:8080  # Changed to port 8080
+      - OLLAMA_URL=http://ollama:11434
+    depends_on:
+      weaviate:
+        condition: service_healthy
+      ollama-setup:
+        condition: service_completed_successfully
+    networks:
+      - ollama-docker
+      - verba-network
+
+  weaviate:
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8080'  # Changed to match Verba's expectation
+      - --scheme
+      - http
+    image: semitechnologies/weaviate:1.25.10
+    ports:
+      - 8085:8080  # External:Internal (keep external port as 8085)
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    restart: on-failure:0
+    healthcheck:
+      test: wget --no-verbose --tries=3 --spider http://localhost:8080/v1/.well-known/ready || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      ENABLE_MODULES: 'e'
+      CLUSTER_HOSTNAME: 'node1'
+    networks:
+      - verba-network
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11435:11434"
+    environment:
+      - OLLAMA_ORIGINS=*
+      - OLLAMA_GPU_LAYERS=99
+      - OLLAMA_CUDA_VISIBLE_DEVICES=all
+      - OLLAMA_FLASH_ATTENTION=true
+      - OLLAMA_GPU_MEMORY_UTILIZATION=0.95
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ./ollama/ollama:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - ollama-docker
+      - verba-network
+
+  ollama-setup:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_started
+    volumes:
+      - ./ollama/ollama:/root/.ollama
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      echo "Waiting for Ollama to be ready..."
+      while ! curl -s http://ollama:11434/api/version > /dev/null 2>&1; do
+        sleep 2
+      done
+      echo "Ollama is ready, proceeding with setup..."
+    networks:
+      - ollama-docker
+
+  ollama-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ollama-webui
+    volumes:
+      - ./ollama/ollama-webui:/app/backend/data
+    depends_on:
+      ollama:
+        condition: service_started
+    ports:
+      - 8086:8080
+    environment:
+      - OLLAMA_BASE_URLS=http://ollama:11434
+      - ENV=dev
+      - WEBUI_AUTH=False
+      - WEBUI_NAME=Verba AI
+      - WEBUI_URL=http://localhost:8086
+      - WEBUI_SECRET_KEY=t0p-s3cr3t
+    restart: unless-stopped
+    networks:
+      - ollama-docker
+
+networks:
+  ollama-docker:
+    external: false
+  verba-network:
+    external: false
+
+volumes:
+  weaviate_data: {}
