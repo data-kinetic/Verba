@@ -487,7 +487,7 @@ export const LightTheme: Theme = {
     description: "Subtitle",
   },
   intro_message: {
-    text: "Welcome to Verba, your open-source RAG application!",
+    text: "Welcome to Generative Insights!",
     type: "text",
     description: "First Message",
   },
@@ -558,7 +558,7 @@ export const DarkTheme: Theme = {
   subtitle: { ...LightTheme.subtitle, text: "The Dark RAGtriever" },
   intro_message: {
     ...LightTheme.intro_message,
-    text: "Welcome to Verba, your open-source RAG application!",
+    text: "Welcome to Generative Insights!",
   },
   image: {
     ...LightTheme.image,
@@ -589,7 +589,7 @@ export const WCDTheme: Theme = {
   subtitle: { ...LightTheme.subtitle, text: "Weaviate Chatbot" },
   intro_message: {
     ...LightTheme.intro_message,
-    text: "Welcome to Verba, your open-source RAG application!",
+    text: "Welcome to Generative Insights!",
   },
   image: {
     ...LightTheme.image,
@@ -620,7 +620,7 @@ export const WeaviateTheme: Theme = {
   subtitle: { ...LightTheme.subtitle, text: "Weaviate Chatbot" },
   intro_message: {
     ...LightTheme.intro_message,
-    text: "Welcome to Verba, your open-source RAG application!",
+    text: "Welcome to Generative Insights!",
   },
   image: {
     ...LightTheme.image,
